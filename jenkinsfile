@@ -1,58 +1,42 @@
 pipeline {
     agent any
-
+    
     environment {
-        DOCKER_IMAGE_NAME = 'bharathsrinivasan/my-web-app' // Customize the Docker image name
+        DOCKER_HUB_CREDENTIALS = credentials('DockerHub')
+        DOCKER_IMAGE_NAME = 'my-web-image'
+        DOCKER_IMAGE_TAG = 'latest'
     }
-
+    
     stages {
         stage('Checkout') {
             steps {
+                // Check out your source code from your version control system
                 checkout scm
             }
         }
-
-        stage('Build Docker Image') {
+        
+        stage('Build and Push Docker Image') {
             steps {
                 script {
-                    def dockerImage = docker.build("${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}")
-
-                    // Optionally, you can add additional build arguments or environment variables here
-                    // dockerImage.inside {
-                    //     sh 'command-to-run-inside-the-container'
-                    // }
-                }
-            }
-        }
-
-        stage('Push Docker Image') {
-            steps {
-                script {
-                    def dockerImage = docker.image("${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}")
+                    // Build the Docker image
+                    docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
+                    
+                    // Log in to Docker Hub using credentials
                     docker.withRegistry('https://hub.docker.com/u/bharathsrinivasan', 'docker-hub-credentials') {
-                        dockerImage.push()
+                        // Push the Docker image to Docker Hub
+                        docker.image("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}").push()
                     }
                 }
             }
         }
-
-        stage('Send Docker Image URL') {
-            steps {
-                script {
-                    def dockerImageURL = "https://hub.docker.com/r/${DOCKER_IMAGE_NAME}"
-                    currentBuild.description = dockerImageURL
-                    echo "Docker Image URL: ${dockerImageURL}"
-                }
-            }
-        }
     }
-
+    
     post {
-        always {
-            // Clean up by removing the local Docker image
-            script {
-                docker.image("${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}").remove()
-            }
+        success {
+            echo 'Pipeline succeeded! Your Docker image is built and pushed to Docker Hub.'
+        }
+        failure {
+            echo 'Pipeline failed.'
         }
     }
 }
