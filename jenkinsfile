@@ -23,7 +23,7 @@ pipeline {
                     
                     // Log in to Docker Hub using credentials
                     // Log in to Docker Hub using credentials
-docker.withRegistry('https://hub.docker.com', 'DockerHubCredentials') {
+docker.withRegistry('https://hub.docker.com', 'DockerHub') {
     // Push the Docker image to Docker Hub
     docker.image("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}").push()
                     }
