@@ -2,27 +2,31 @@ pipeline {
     agent any
     
     environment {
-        DOCKER_HUB_CREDENTIALS = credentials('YourDockerHubCredentialsID')
+        // Define environment variables here, e.g., for credentials
+        DOCKER_HUB_CREDENTIALS = credentials('DockerHub')
+        DOCKER_IMAGE_NAME = 'my-web-image'
+        DOCKER_IMAGE_TAG = 'latest'
     }
     
     stages {
         stage('Checkout') {
             steps {
-                // Checkout your code from Git
-                // ...
+                // Check out your source code from your version control system
+                checkout scm
             }
         }
         
         stage('Build and Push Docker Image') {
             steps {
                 script {
-                    // Build and tag the Docker image
-                    docker.build("my-web-image:latest")
+                    // Build the Docker image
+                    docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
                     
-                    // Authenticate and push the Docker image
+                    // Log in to Docker Hub using credentials
                     withDockerRegistry(credentialsId: 'DockerHub', url: 'https://hub.docker.com') {
-                        docker.withRegistry('https://hub.docker.com', 'DockerHub') {
-                            docker.image("my-web-image:latest").push()
+                     docker.withRegistry('https://hub.docker.com', 'docker-hub-credentials') {
+                        // Push the Docker image to Docker Hub
+                        docker.image("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}").push()
                         }
                     }
                 }
@@ -31,10 +35,12 @@ pipeline {
     }
     
     post {
+        success {
+            echo 'Pipeline succeeded! Your Docker image is built and pushed to Docker Hub.'
+        }
         failure {
             echo 'Pipeline failed.'
         }
     }
 }
-
 
