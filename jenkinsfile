@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKER_IMAGE_NAME = 'bharathsrinivasan/my-web-app' // Customize the Docker image name
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    def dockerImage = docker.build("${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}")
+
+                    // Optionally, you can add additional build arguments or environment variables here
+                    // dockerImage.inside {
+                    //     sh 'command-to-run-inside-the-container'
+                    // }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    def dockerImage = docker.image("${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}")
+                    docker.withRegistry('https://hub.docker.com/u/bharathsrinivasan', 'docker-hub-credentials') {
+                        dockerImage.push()
+                    }
+                }
+            }
+        }
+
+        stage('Send Docker Image URL') {
+            steps {
+                script {
+                    def dockerImageURL = "https://hub.docker.com/r/${DOCKER_IMAGE_NAME}"
+                    currentBuild.description = dockerImageURL
+                    echo "Docker Image URL: ${dockerImageURL}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Clean up by removing the local Docker image
+            script {
+                docker.image("${DOCKER_IMAGE_NAME}:${BUILD_NUMBER}").remove()
+            }
+        }
+    }
+}
+
