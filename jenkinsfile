@@ -1,45 +1,37 @@
 pipeline {
     agent any
-    
-    environment {
-        // Define environment variables here, e.g., for credentials
-        DOCKER_HUB_CREDENTIALS = credentials('DockerHub')
-        DOCKER_IMAGE_NAME = 'my-web-image'
-        DOCKER_IMAGE_TAG = 'latest'
-    }
-    
+
     stages {
         stage('Checkout') {
             steps {
-                // Check out your source code from your version control system
+                // Checkout your source code from your version control system 
                 checkout scm
             }
         }
-        
+
         stage('Build and Push Docker Image') {
             steps {
                 script {
+                    def dockerImage = 'bharathsrinivasan/my-web-app:latest'
+                    def appName = 'your-app-name'
+
                     // Build the Docker image
-                    docker.build("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}")
-                    
-                    // Log in to Docker Hub using credentials
-                    withDockerRegistry(credentialsId: 'DockerHub', url: 'https://hub.docker.com') {
-                     docker.withRegistry('https://hub.docker.com', 'DockerHub') {
-                        // Push the Docker image to Docker Hub
-                        docker.image("${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}").push()
-                        }
+                    sh "docker build -t $dockerImage ."
+
+                    // Push the Docker image to Docker Hub
+                    withCredentials([usernamePassword(credentialsId: 'DockerHub', usernameVariable: 'DOCKERHUB_USERNAME', passwordVariable: 'DOCKERHUB_PASSWORD')]) {
+                        sh "docker login -u $DOCKERHUB_USERNAME -p $DOCKERHUB_PASSWORD"
+                        sh "docker push $dockerImage"
                     }
                 }
             }
         }
     }
-    
+
     post {
         success {
-            echo 'Pipeline succeeded! Your Docker image is built and pushed to Docker Hub.'
-        }
-        failure {
-            echo 'Pipeline failed.'
+        
+            sh "echo 'Docker Image URL: https://hub.docker.com/r/bharathsrinivasan/my-web-app'"
         }
     }
 }
